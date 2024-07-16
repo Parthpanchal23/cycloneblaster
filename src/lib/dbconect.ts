@@ -13,6 +13,9 @@ async function dbconnect(): Promise<void> {
     return;
   }
   try {
+    if (mongoose.connection.readyState >= 1) {
+      return;
+    }
     // Database conenction
     const db = await mongoose.connect(process.env.MONGODB_URI || "", {});
     console.log("DATABSE", db, db.connections);
