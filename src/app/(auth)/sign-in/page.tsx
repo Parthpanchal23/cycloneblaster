@@ -1,47 +1,11 @@
 "use client";
-// import { useSession, signIn, signOut } from "next-auth/react";
-// export default function Component() {
-//   const { data: session } = useSession();
-//   if (session) {
-//     return (
-//       <>
-//         Signed in as {session?.user?.email} <br />
-//         <button onClick={() => signOut()}>Sign out</button>
-//       </>
-//     );
-//   }
-//   return (
-//     <div
-//       style={{
-//         display: "flex",
-//         flexDirection: "column",
-//         justifyContent: "center",
-//         alignItems: "center",
-//         height: "100vh",
-//       }}
-//     >
-//       Not signed in <br />
-//       <button
-//         className="bg-orange-500 rounded-md p-1 m-2"
-//         onClick={() => signIn()}
-//       >
-//         Sign in
-//       </button>
-//     </div>
-//   );
-// }
-
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import Link from "next/link";
-import { useDebounceValue } from "usehooks-ts";
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
-import { signupSchema } from "@/schemas/signUpSchema";
-import axios, { AxiosError } from "axios";
-import { APIResponse } from "@/types/ApiResonse";
 import {
   Form,
   FormControl,
@@ -54,45 +18,39 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { signInSchema } from "@/schemas/signInSchema";
+import { signIn } from "next-auth/react";
 
 const page = () => {
-  const [username, setUserName] = useState("");
-  const [usernameMessage, setUserNameMessage] = useState("");
-  const [isChecingUserName, setIsChecingUserName] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const debouncedUserName = useDebounceValue(username, 500);
-
   const { toast } = useToast();
   const router = useRouter();
 
   // Zod implementation
-  const form = useForm<z.infer<typeof signupSchema>>({
-    resolver: zodResolver(signupSchema),
+  const form = useForm<z.infer<typeof signInSchema>>({
+    resolver: zodResolver(signInSchema),
     defaultValues: {
-      username: "",
-      email: "",
+      identifier: "",
       password: "",
     },
   });
 
-  const onSubmit = async (data: z.infer<typeof signupSchema>) => {
-    setIsSubmitting(true);
-    try {
-      const response = await axios.post<APIResponse>("/api/sign-up", data);
-      if (response?.status) {
-        toast({ title: "Sucess", description: response?.data?.message });
-        router.replace(`/verify/${username}`);
-      }
-    } catch (error) {
-      const AxiosError = error as AxiosError<APIResponse>;
-      let errorMEssage = AxiosError?.respose?.data?.message;
+  const onSubmit = async (data: z.infer<typeof signInSchema>) => {
+    const result = await signIn("credentials", {
+      redirect: false,
+      identifier: data?.identifier,
+      password: data?.password,
+    });
+    if (result?.error) {
+      // if (result.error == "CredentialSignin ")
       toast({
-        title: "Signup Failed",
-        description: errorMEssage,
+        title: "Login Failed ",
+        description: "Incorrect username  password",
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
+    }
+    if (result?.url) {
+      router.replace("/dashboard");
     }
   };
   return (
@@ -108,17 +66,13 @@ const page = () => {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
             <FormField
-              name="email"
+              name="identifier"
               control={form.control}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="abc@email.com"
-                      {...field}
-                    />
+                    <Input type="otp" placeholder="abc@email.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -137,22 +91,14 @@ const page = () => {
                 </FormItem>
               )}
             />
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                </>
-              ) : (
-                "Signup"
-              )}
-            </Button>
+            <Button type="submit">SignIn</Button>
           </form>
         </Form>
         <div className="text-center mt-4">
           <p>
             already a member?
-            <Link href="/sign-in" className="text-blue-600 hover:text-blue-800">
-              Sign In
+            <Link href="/sign-up" className="text-blue-600 hover:text-blue-800">
+              Sign Up
             </Link>
           </p>
         </div>
