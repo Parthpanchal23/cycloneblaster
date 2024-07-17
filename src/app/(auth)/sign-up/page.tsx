@@ -36,7 +36,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import Link from "next/link";
-import { useDebounceValue } from "usehooks-ts";
+import { useDebounceCallback, useDebounceValue } from "usehooks-ts";
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 import { signupSchema } from "@/schemas/signUpSchema";
@@ -60,7 +60,8 @@ const page = () => {
   const [usernameMessage, setUserNameMessage] = useState("");
   const [isChecingUserName, setIsChecingUserName] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const debouncedUserName = useDebounceValue(username, 500);
+  const debounced = useDebounceCallback(setUserName, 500);
+  //   const debouncedUserName = useDebounceValue(username, 500);
 
   const { toast } = useToast();
   const router = useRouter();
@@ -75,14 +76,36 @@ const page = () => {
     },
   });
 
+  //   useEffect(() => {
+  //     const checkUsernameUnique = async () => {
+  //       if (username) {
+  //         setIsChecingUserName(true);
+  //         setUserNameMessage("");
+  //         try {
+  //           let response = await axios.get(
+  //             `/api/check-username-unique?username=${username}`
+  //           );
+  //           let message = response?.data.message;
+  //           setUserNameMessage(message);
+  //         } catch (error) {
+  //           const AxiosError = error as AxiosError<APIResponse>;
+  //           setUserNameMessage(
+  //             AxiosError?.response?.data?.message || "Error checking user name"
+  //           );
+  //         } finally {
+  //           setIsChecingUserName(false);
+  //         }
+  //       }
+  //     };
+  //     checkUsernameUnique();
+  //   }, [username]);
+
   const onSubmit = async (data: z.infer<typeof signupSchema>) => {
     setIsSubmitting(true);
     try {
       const response = await axios.post<APIResponse>("/api/sign-up", data);
-      if (response?.status) {
-        toast({ title: "Sucess", description: response?.data?.message });
-        router.replace(`/verify/${username}`);
-      }
+      toast({ title: "Sucess", description: response?.data?.message });
+      router.replace(`/verify/${username}`);
     } catch (error) {
       const AxiosError = error as AxiosError<APIResponse>;
       let errorMEssage = AxiosError?.respose?.data?.message;
@@ -102,11 +125,44 @@ const page = () => {
           <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-6">
             Join Cyclone Dutt
           </h1>
-          <p className="mb-4 text-slate-500">Sign In to Enjoy adventure</p>
+          <p className="mb-4 text-slate-500">
+            Sign up to start your anonymous adventure
+          </p>
         </div>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+            <FormField
+              name="username"
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Username</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Username"
+                      {...field}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        debounced(e?.target?.value);
+                      }}
+                    />
+                  </FormControl>
+                  {isChecingUserName && <Loader2 className="animate -spin" />}
+                  <p
+                    className={`text-sm ${
+                      usernameMessage === "Username is unique"
+                        ? "text-green-500"
+                        : "text-red-500"
+                    }`}
+                  >
+                    {" "}
+                    test {usernameMessage}
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               name="email"
               control={form.control}
@@ -140,7 +196,7 @@ const page = () => {
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Please wait
                 </>
               ) : (
                 "Signup"
@@ -152,7 +208,7 @@ const page = () => {
           <p>
             already a member?
             <Link href="/sign-in" className="text-blue-600 hover:text-blue-800">
-              Sign In
+              Sign in
             </Link>
           </p>
         </div>

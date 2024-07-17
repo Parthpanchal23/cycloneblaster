@@ -16,7 +16,7 @@ export async function POST(request: Request) {
       return Response.json(
         {
           sucess: false,
-          message: "User Name alreadu taken",
+          message: "User Name already taken",
         },
         { status: 400 }
       );
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
         return Response.json(
           {
             sucess: false,
-            message: "USer already exist with this email",
+            message: "User already exist with this email",
           },
           { status: 400 }
         );
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
           sucess: false,
           message: emailResponse.message,
         },
-        { status: 500 }
+        { status: 200 }
       );
     }
     return Response.json(
